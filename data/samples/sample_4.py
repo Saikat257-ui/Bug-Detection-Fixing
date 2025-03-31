@@ -4,4 +4,3 @@ def search_list(items, target):
             return i
     return -1
 
-# Bug: Off-by-one error, should be range(0, len(items))

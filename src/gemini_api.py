@@ -25,32 +25,26 @@ class GeminiFixRecommender:
             logger.error(error_msg)
             raise ValueError(error_msg)
         
-        # Configure the Gemini API with appropriate settings to prevent gRPC shutdown issues
         genai.configure(
             api_key=api_key,
-            transport="rest"  # Use REST instead of gRPC to avoid shutdown timeout issues
+            transport="rest"
         )
         
-        # Set timeout in the model initialization instead of in configure
         
-        # Set a list of models to try in order of preference
         model_options = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro-latest"]
         selected_model = None
         
-        # Try to get available models
         try:
             models = genai.list_models()
             available_model_names = [model.name for model in models]
             logger.info(f"Available Gemini models: {available_model_names}")
             
-            # Try each preferred model in order
             for model_name in model_options:
                 if any(model_name in m for m in available_model_names):
                     selected_model = model_name
                     logger.info(f"Selected Gemini model: {selected_model}")
                     break
                     
-            # If none of our preferred models are found, use the first available Gemini model
             if selected_model is None and available_model_names:
                 for model_name in available_model_names:
                     if "gemini" in model_name.lower():
@@ -61,12 +55,10 @@ class GeminiFixRecommender:
         except Exception as e:
             logger.warning(f"Error listing Gemini models: {str(e)}")
         
-        # Fallback to the first option if we couldn't determine an available model
         if selected_model is None:
             selected_model = model_options[0]
             logger.warning(f"No Gemini models found, falling back to: {selected_model}")
         
-        # Initialize the model
         self.model = genai.GenerativeModel(selected_model)
         logger.info(f"Initialized GeminiFixRecommender with model: {selected_model}")
     
@@ -90,7 +82,6 @@ class GeminiFixRecommender:
                 "explanation": None
             }
         
-        # Prepare the prompt based on the bug type
         if bug_type and bug_type != "none" and bug_type in config.BUG_TYPES:
             prompt = f"""
             You are a Python code expert. Here's some code that contains a {bug_type}. Please analyze it carefully and provide a detailed fix:
@@ -152,25 +143,20 @@ class GeminiFixRecommender:
             [your explanation here]
             """
         
-        # Try to generate a fix with retries
         for attempt in range(max_retries):
             try:
                 response = self.model.generate_content(prompt)
                 
-                # Extract the response text
                 if hasattr(response, 'text'):
                     response_text = response.text
                 elif hasattr(response, 'parts'):
                     response_text = ''.join([part.text for part in response.parts])
                 else:
-                    # If we don't have text or parts, try converting to string
                     response_text = str(response)
                     logger.warning(f"Unexpected response format, converted to string: {response_text[:100]}...")
                 
-                # Parse the response and validate the results
                 fixed_code, explanation = self._parse_response(response_text, buggy_code)
                 
-                # Verify we got meaningful content
                 if not fixed_code or fixed_code.isspace() or fixed_code == buggy_code:
                     logger.warning("Generated fix appears to be empty or unchanged")
                     return {
@@ -180,7 +166,6 @@ class GeminiFixRecommender:
                         "explanation": None
                     }
                 
-                # Check if the fixed code is valid Python syntax
                 is_valid, error_msg = is_valid_python_code(fixed_code)
                 
                 if not is_valid:
@@ -192,9 +177,8 @@ class GeminiFixRecommender:
                             "fixed_code": fixed_code,
                             "explanation": explanation
                         }
-                    # Wait before retrying
                     time.sleep(retry_delay)
-                    continue  # Try again
+                    continue  
                 
                 return {
                     "success": True,
@@ -212,10 +196,8 @@ class GeminiFixRecommender:
                         "fixed_code": None,
                         "explanation": None
                     }
-                # Wait before retrying
                 time.sleep(retry_delay)
         
-        # Should not reach here, but just in case
         return {
             "success": False,
             "error": "Failed to generate fix after multiple attempts",
@@ -234,12 +216,10 @@ class GeminiFixRecommender:
         Returns:
             tuple: (fixed_code, explanation)
         """
-        # Default values
         fixed_code = original_code
         explanation = "No explanation provided."
         
         try:
-            # Look for FIXED_CODE: section
             if "FIXED_CODE:" in response_text and "```python" in response_text:
                 code_parts = response_text.split("```python")
                 if len(code_parts) > 1:
@@ -247,13 +227,11 @@ class GeminiFixRecommender:
                     if code_block:
                         fixed_code = code_block
             
-            # Look for EXPLANATION: section
             if "EXPLANATION:" in response_text:
                 explanation_parts = response_text.split("EXPLANATION:")
                 if len(explanation_parts) > 1:
                     explanation = explanation_parts[1].strip()
             
-            # If we couldn't find the formatted sections, try to extract any code block
             if fixed_code == original_code and "```python" in response_text:
                 code_parts = response_text.split("```python")
                 if len(code_parts) > 1:
@@ -261,9 +239,7 @@ class GeminiFixRecommender:
                     if code_block:
                         fixed_code = code_block
             
-            # If we still don't have an explanation, use the whole response
             if explanation == "No explanation provided." and fixed_code != original_code:
-                # Remove code blocks from explanation
                 explanation = response_text
                 for code_block in response_text.split("```"):
                     if "python" in code_block or fixed_code in code_block:
@@ -272,7 +248,6 @@ class GeminiFixRecommender:
         
         except Exception as e:
             logger.error(f"Error parsing response: {str(e)}")
-            # Return original code and error message
             return original_code, f"Error parsing response: {str(e)}"
         
         return fixed_code, explanation
@@ -283,15 +258,12 @@ class GeminiFixRecommender:
         Call this method when you're done using the recommender to prevent gRPC shutdown timeout issues.
         """
         try:
-            # Check if Python is shutting down (sys.meta_path is None during shutdown)
             if getattr(sys, 'meta_path', None) is None:
                 logger.info("Skipping cleanup as Python is shutting down")
                 return
                 
-            # Clear any references to genai objects
             self.model = None
             
-            # Force garbage collection to clean up any remaining references
             import gc
             gc.collect()
             
@@ -308,7 +280,6 @@ class GeminiFixRecommender:
 
 def test_gemini_fix():
     """Test the Gemini API fix recommendation."""
-    # Example buggy code
     buggy_code = """
     def divide_numbers(a, b):
         return a / b
@@ -317,14 +288,11 @@ def test_gemini_fix():
     print(f"Result: {result}")
     """
     
-    # Initialize the fix recommender
     recommender = GeminiFixRecommender()
     
     try:
-        # Generate a fix
         result = recommender.generate_fix(buggy_code, bug_type="logic_error")
         
-        # Print the result
         print("=== Original Code ===")
         print(buggy_code)
         print("\n=== Fixed Code ===")
@@ -334,38 +302,30 @@ def test_gemini_fix():
         
         return result
     finally:
-        # Ensure resources are cleaned up even if an exception occurs
         recommender.cleanup()
 
 
 if __name__ == "__main__":
-    # Test the Gemini API integration
     test_result = test_gemini_fix()
     
-    # Make sure the Gemini API key is working
     if not test_result["success"]:
         logger.error(f"Gemini API test failed: {test_result['error']}")
     else:
         logger.info("Gemini API test successful")
     
-    # Force cleanup of any remaining gRPC resources
-    # This helps prevent the gRPC shutdown timeout issue
     import atexit
     import gc
     
     def cleanup_resources():
         """Force cleanup of any remaining gRPC resources."""
         try:
-            # Check if Python is shutting down (sys.meta_path is None during shutdown)
             if getattr(sys, 'meta_path', None) is None:
                 logger.info("Skipping cleanup as Python is shutting down")
                 return
                 
-            # Clear any references to genai objects
             gc.collect()
             logger.info("Cleaned up resources")
         except Exception as e:
             logger.error(f"Error during cleanup: {str(e)}")
     
-    # Register the cleanup function to be called when the program exits
     atexit.register(cleanup_resources)

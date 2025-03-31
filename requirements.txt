@@ -1,5 +1,4 @@
-numpy==1.24.3  # Keep this version for compatibility with other dependencies
-# Do not upgrade to NumPy 2.x as it causes compatibility issues with other ML libraries
+numpy==1.24.3 
 pandas==2.0.1
 scikit-learn==1.2.2
 transformers==4.30.2

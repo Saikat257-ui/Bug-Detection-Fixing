@@ -40,7 +40,6 @@ class ModelEvaluator:
         if self.classifier_model is not None:
             self.classifier_model.to(self.device)
         
-        # Load bug type label encoder if available
         self.label_encoder = None
         label_encoder_path = os.path.join(config.MODEL_SAVE_PATH, "classifier", "label_encoder.pkl")
         if os.path.exists(label_encoder_path):
@@ -73,14 +72,12 @@ class ModelEvaluator:
                 all_preds.extend(preds)
                 all_labels.extend(labels)
         
-        # Calculate metrics
         precision, recall, f1, _ = precision_recall_fscore_support(
             all_labels, all_preds, average='weighted'
         )
         
         accuracy = accuracy_score(all_labels, all_preds)
         
-        # Confusion matrix
         cm = confusion_matrix(all_labels, all_preds)
         
         metrics = {
@@ -123,27 +120,23 @@ class ModelEvaluator:
                 all_preds.extend(preds)
                 all_labels.extend(labels)
         
-        # Get class names if label encoder is available
         if self.label_encoder is not None:
             class_names = self.label_encoder.classes_
         else:
             class_names = [f"Class_{i}" for i in range(len(set(all_labels)))]
         
-        # Calculate metrics
         precision, recall, f1, _ = precision_recall_fscore_support(
             all_labels, all_preds, average='weighted'
         )
         
         accuracy = accuracy_score(all_labels, all_preds)
         
-        # Detailed classification report
         report = classification_report(
             all_labels, all_preds, 
             target_names=class_names,
             output_dict=True
         )
         
-        # Confusion matrix
         cm = confusion_matrix(all_labels, all_preds)
         
         metrics = {
@@ -173,39 +166,29 @@ class ModelEvaluator:
                 - bug_probability: Probability that the code contains a bug
                 - metrics: Performance metrics for the model
         """
-        # Ensure code is a string
         if not isinstance(code_snippet, str):
             code_snippet = str(code_snippet)
         
-        # Tokenize the code
         inputs = tokenize_code(code_snippet, self.detector_tokenizer)
         
-        # Move inputs to device
         input_ids = inputs["input_ids"].to(self.device)
         attention_mask = inputs["attention_mask"].to(self.device)
         
-        # Set model to evaluation mode
         self.detector_model.eval()
         
-        # Make prediction
         with torch.no_grad():
             outputs = self.detector_model(input_ids=input_ids, attention_mask=attention_mask)
             
-            # Extract logits from outputs
             logits = outputs["logits"] if isinstance(outputs, dict) else outputs.logits
             
-            # Get prediction and probability
             probs = torch.nn.functional.softmax(logits, dim=1)
             pred_class = torch.argmax(logits, dim=1).item()
-            bug_prob = probs[0, 1].item()  # Probability of class 1 (has bug)
+            bug_prob = probs[0, 1].item()  
         
-        # Determine if code has a bug
         has_bug = bug_prob >= config.DETECTION_THRESHOLD
         
-        # Get borderline cases for recommendations
         borderline = (bug_prob >= config.DETECTION_THRESHOLD - 0.15) & (bug_prob < config.DETECTION_THRESHOLD)
         
-        # Initialize result
         result = {
             "has_bug": has_bug or borderline,
             "borderline_case": borderline,
@@ -216,35 +199,27 @@ class ModelEvaluator:
             }
         }
         
-        # If a bug was detected and we have a classifier, predict the bug type
         if has_bug and self.classifier_model is not None:
-            # Set classifier to evaluation mode
             self.classifier_model.eval()
             
-            # Tokenize the code (use the classifier tokenizer if different)
             if self.classifier_tokenizer != self.detector_tokenizer:
                 inputs = tokenize_code(code_snippet, self.classifier_tokenizer)
                 input_ids = inputs["input_ids"].to(self.device)
                 attention_mask = inputs["attention_mask"].to(self.device)
             
-            # Make prediction
             with torch.no_grad():
                 outputs = self.classifier_model(input_ids=input_ids, attention_mask=attention_mask)
                 
-                # Extract logits from outputs
                 logits = outputs["logits"] if isinstance(outputs, dict) else outputs.logits
                 
-                # Get prediction and probabilities
                 bug_type_probs = torch.nn.functional.softmax(logits, dim=1)
                 bug_type_idx = torch.argmax(logits, dim=1).item()
             
-            # Get the bug type name
             if self.label_encoder is not None:
                 bug_type = self.label_encoder.classes_[bug_type_idx]
             else:
                 bug_type = f"Type_{bug_type_idx}"
             
-            # Add to result
             result["bug_type"] = bug_type
             result["bug_type_probability"] = bug_type_probs[0, bug_type_idx].item()
         
@@ -311,7 +286,6 @@ class ModelEvaluator:
 
 def evaluate_models(test_data_path=None):
     """Evaluate bug detection and classification models."""
-    # Load test data
     if test_data_path is None:
         test_data_path = os.path.join(config.TEST_DATA_PATH, "test_data.csv")
     
@@ -322,7 +296,6 @@ def evaluate_models(test_data_path=None):
     test_df = pd.read_csv(test_data_path)
     logger.info(f"Loaded test data with {len(test_df)} samples")
     
-    # Load detector model
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
     
     detector_path = os.path.join(config.MODEL_SAVE_PATH, "detector")
@@ -344,7 +317,6 @@ def evaluate_models(test_data_path=None):
     else:
         logger.warning(f"Classifier model not found at {classifier_path}")
     
-    # Initialize evaluator
     evaluator = ModelEvaluator(
         detector_model, 
         detector_tokenizer,
@@ -352,7 +324,6 @@ def evaluate_models(test_data_path=None):
         classifier_tokenizer
     )
     
-    # Prepare data for detector evaluation
     from torch.utils.data import DataLoader, TensorDataset
     
     detector_encodings = detector_tokenizer(
@@ -376,17 +347,13 @@ def evaluate_models(test_data_path=None):
         batch_size=config.BATCH_SIZE
     )
     
-    # Evaluate detector
     detector_metrics = evaluator.evaluate_detector(detector_dataloader)
     
-    # Prepare data for classifier evaluation (if available)
     classifier_metrics = None
     if classifier_model is not None:
-        # Only use rows with bugs for bug type classification
         bug_test_df = test_df[test_df['has_bug'] == 1].copy()
         
         if len(bug_test_df) > 0:
-            # Load label encoder
             label_encoder_path = os.path.join(classifier_path, "label_encoder.pkl")
             label_encoder = None
             
@@ -394,10 +361,8 @@ def evaluate_models(test_data_path=None):
                 with open(label_encoder_path, "rb") as f:
                     label_encoder = pickle.load(f)
                 
-                # Encode bug types
                 bug_test_df['bug_type_encoded'] = label_encoder.transform(bug_test_df['bug_type'])
                 
-                # Prepare data
                 classifier_encodings = classifier_tokenizer(
                     bug_test_df['buggy_code'].tolist(),
                     truncation=True,
@@ -419,10 +384,8 @@ def evaluate_models(test_data_path=None):
                     batch_size=config.BATCH_SIZE
                 )
                 
-                # Evaluate classifier
                 classifier_metrics = evaluator.evaluate_classifier(classifier_dataloader)
     
-    # Save metrics
     evaluator.save_metrics(detector_metrics, classifier_metrics)
     
     return detector_metrics, classifier_metrics
@@ -431,7 +394,6 @@ def evaluate_models(test_data_path=None):
 if __name__ == "__main__":
     detector_metrics, classifier_metrics = evaluate_models()
     
-    # Plot confusion matrices
     if detector_metrics and "confusion_matrix" in detector_metrics:
         cm = np.array(detector_metrics["confusion_matrix"])
         evaluator = ModelEvaluator(None, None)  # Dummy evaluator just for plotting

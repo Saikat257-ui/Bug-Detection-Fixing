@@ -9,7 +9,6 @@ import torch
 from transformers import set_seed
 import config
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',

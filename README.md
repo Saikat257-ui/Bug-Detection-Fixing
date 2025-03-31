@@ -32,9 +32,14 @@ This project uses Machine Learning to automatically identify bugs in code and su
 
 ## Usage
 
-Run the main script to analyze a code snippet:
+Run this main script to analyze all the code samples loaded in the 'samples' folder:
 ```
-python main.py --input your_code_file.py
+python main.py
+```
+
+Run this main script to analyze all the code samples loaded in the 'samples' folder:
+```
+python main.py --analyze-file "path to that code sample"
 ```
 
 

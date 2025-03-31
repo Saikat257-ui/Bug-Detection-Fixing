@@ -7,4 +7,3 @@ def find_max(arr):
             max_val = arr[i]
     return max_val
 
-# No bug in this function

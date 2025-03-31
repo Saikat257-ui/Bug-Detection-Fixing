@@ -28,38 +28,30 @@ class CodeBugDetector(nn.Module):
         
         logger.info(f"Initializing CodeBugDetector with {pretrained_model_name}")
         
-        # Load pre-trained model
         self.code_model = AutoModel.from_pretrained(pretrained_model_name)
         
-        # Get the hidden size from the model config
         hidden_size = self.code_model.config.hidden_size
         
-        # Classification layers
         self.dropout = nn.Dropout(0.1)
         self.classifier = nn.Linear(hidden_size, num_labels)
         
-        # Move model to GPU if available
         self.to(self.device)
         
         logger.info(f"Model initialized with {sum(p.numel() for p in self.parameters())} parameters")
     
     def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None):
         """Forward pass through the model."""
-        # Pass input through the pre-trained model
         outputs = self.code_model(
             input_ids=input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids
         )
         
-        # Get the [CLS] token representation (first token)
         pooled_output = outputs.last_hidden_state[:, 0]
         
-        # Apply dropout and classifier
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
         
-        # Calculate loss if labels are provided
         loss = None
         if labels is not None:
             loss_fn = nn.CrossEntropyLoss()
@@ -88,13 +80,10 @@ class CodeBugClassifier(nn.Module):
         
         logger.info(f"Initializing CodeBugClassifier with {pretrained_model_name}")
         
-        # Load pre-trained model
         self.code_model = AutoModel.from_pretrained(pretrained_model_name)
         
-        # Get the hidden size from the model config
         hidden_size = self.code_model.config.hidden_size
         
-        # Classification head
         self.dropout = nn.Dropout(0.1)
         self.classifier = nn.Sequential(
             nn.Linear(hidden_size, hidden_size // 2),
@@ -103,28 +92,23 @@ class CodeBugClassifier(nn.Module):
             nn.Linear(hidden_size // 2, num_classes)
         )
         
-        # Move model to GPU if available
         self.to(self.device)
         
         logger.info(f"Bug classifier initialized with {sum(p.numel() for p in self.parameters())} parameters")
     
     def forward(self, input_ids, attention_mask=None, token_type_ids=None, labels=None):
         """Forward pass through the model."""
-        # Pass input through the pre-trained model
         outputs = self.code_model(
             input_ids=input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids
         )
         
-        # Get the [CLS] token representation
         pooled_output = outputs.last_hidden_state[:, 0]
         
-        # Apply dropout and classifier
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
         
-        # Calculate loss if labels are provided
         loss = None
         if labels is not None:
             loss_fn = nn.CrossEntropyLoss()
@@ -158,7 +142,6 @@ def load_pretrained_detector(model_path=None):
 
 
 if __name__ == "__main__":
-    # Simple test to initialize models
     detector = CodeBugDetector()
     classifier = CodeBugClassifier()
     print(f"Detector device: {detector.device}")

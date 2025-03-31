@@ -16,7 +16,6 @@ from src.train import train_bug_detection_model, train_bug_classifier_model
 from src.evaluate import ModelEvaluator
 from src.gemini_api import GeminiFixRecommender
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -38,7 +37,6 @@ class BugDetectionApp:
         self.device = get_device()
         logger.info(f"Using device: {self.device}")
         
-        # Initialize models
         self.detector_model = None
         self.detector_tokenizer = None
         self.classifier_model = None
@@ -46,14 +44,12 @@ class BugDetectionApp:
         self.evaluator = None
         self.fix_recommender = None
         
-        # Load models if available
         self._load_models()
     
     def _load_models(self):
         """Load the trained models if available."""
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
         
-        # Check for detector model
         detector_path = os.path.join(config.MODEL_SAVE_PATH, "detector")
         if os.path.exists(detector_path):
             try:
@@ -67,7 +63,6 @@ class BugDetectionApp:
             logger.warning("Bug detector model not found. Using default model.")
             self._initialize_default_models()
         
-        # Check for classifier model
         classifier_path = os.path.join(config.MODEL_SAVE_PATH, "classifier")
         if os.path.exists(classifier_path):
             try:
@@ -79,7 +74,6 @@ class BugDetectionApp:
                 self.classifier_model = None
                 self.classifier_tokenizer = None
         
-        # Initialize evaluator
         if self.detector_model is not None:
             self.evaluator = ModelEvaluator(
                 self.detector_model,
@@ -88,14 +82,12 @@ class BugDetectionApp:
                 self.classifier_tokenizer
             )
         
-        # Initialize fix recommender
         self.fix_recommender = GeminiFixRecommender()
     
     def _initialize_default_models(self):
         """Initialize with default pre-trained models."""
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
         
-        # Initialize with default model
         model_name = config.MODEL_NAME
         
         try:
@@ -123,16 +115,13 @@ class BugDetectionApp:
         """
         processor = CodeDataProcessor(tokenizer_name=config.MODEL_NAME)
         
-        # Create sample data for testing
         create_sample_data()
         
-        # Use default languages from config if not specified
         if languages is None:
             languages = config.PROGRAMMING_LANGUAGES
         
         logger.info(f"Preparing data for languages: {languages} with streaming={use_streaming}")
         
-        # Load or create dataset with optimized streaming
         train_data, test_data = processor.load_or_create_dataset(
             languages=languages,
             force_recreate=force_recreate,
@@ -144,27 +133,23 @@ class BugDetectionApp:
     
     def train_models(self, force_retrain=False):
         """Train the bug detection and classification models."""
-        # Prepare data
         train_data, test_data = self.prepare_data()
         
         if train_data is None or test_data is None:
             logger.error("Failed to prepare data for training")
             return False
         
-        # Train detector model
         detector_path = train_bug_detection_model(train_data, test_data, force_retrain)
         
         if detector_path is None:
             logger.error("Failed to train bug detector model")
             return False
         
-        # Train classifier model
         classifier_path = train_bug_classifier_model(train_data, test_data, force_retrain)
         
         if classifier_path is None:
             logger.warning("Failed to train bug classifier model")
         
-        # Reload models
         self._load_models()
         
         return True
@@ -178,7 +163,6 @@ class BugDetectionApp:
                 "has_bug": False
             }
         
-        # Read file content
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 code = f.read()
@@ -189,7 +173,6 @@ class BugDetectionApp:
                 "has_bug": False
             }
         
-        # Analyze code
         return self.analyze_code(code)
     
     def analyze_code(self, code):
@@ -208,19 +191,14 @@ class BugDetectionApp:
                     "has_bug": False
                 }
         
-        # Run the code through the evaluator
         analysis_result = self.evaluator.analyze_code(code)
         
-        # If a bug was detected, generate a fix recommendation
         if (analysis_result["has_bug"] or analysis_result.get("borderline_case", False)) \
             and self.fix_recommender is not None:
-            # Get the bug type if available
             bug_type = analysis_result.get("bug_type", None)
             
-            # Generate fix
             fix_result = self.fix_recommender.generate_fix(code, bug_type)
             
-            # Add fix to analysis result
             analysis_result["fix_recommendation"] = fix_result
         else:
             analysis_result["fix_recommendation"] = {
@@ -262,24 +240,20 @@ class BugDetectionApp:
         
         args = parser.parse_args()
         
-        # Train models if requested
         if args.train:
             logger.info("Training models...")
             self.train_models(force_retrain=args.force_retrain)
         
-        # Analyze file if provided
         if args.analyze_file:
             logger.info(f"Analyzing file: {args.analyze_file}")
             result = self.analyze_file(args.analyze_file)
             self._display_analysis_result(result, args.analyze_file)
         
-        # Analyze code snippet if provided
         if args.analyze_code:
             logger.info("Analyzing code snippet")
             result = self.analyze_code(args.analyze_code)
             self._display_analysis_result(result, "code_snippet")
         
-        # If no analysis requested, check for sample files
         if not args.analyze_file and not args.analyze_code and not args.train:
             sample_dir = config.SAMPLE_DATA_PATH
             if os.path.exists(sample_dir):

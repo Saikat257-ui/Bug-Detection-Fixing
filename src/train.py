@@ -191,14 +191,11 @@ class ModelTrainer:
         for epoch in range(epochs):
             epoch_iterator = tqdm(train_dataloader, desc=f"Epoch {epoch+1}/{epochs}")
             for step, batch in enumerate(epoch_iterator):
-                # Get inputs
                 batch = tuple(t.to(self.device) for t in batch)
                 input_ids, attention_mask, labels = batch
                 
-                # Zero gradients
                 optimizer.zero_grad()
                 
-                # Forward pass
                 outputs = self.model(
                     input_ids=input_ids,
                     attention_mask=attention_mask,
@@ -207,44 +204,34 @@ class ModelTrainer:
                 
                 loss = outputs["loss"]
                 
-                # Backward pass
                 loss.backward()
                 
-                # Update weights
                 optimizer.step()
                 scheduler.step()
                 
-                # Track loss
                 training_loss += loss.item()
                 global_step += 1
                 
-                # Update progress bar
                 epoch_iterator.set_postfix({"loss": loss.item()})
                 
-                # Gradient clipping
                 torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
                 
-                # Optimizer step
                 optimizer.step()
                 scheduler.step()
                 
-                # Evaluate if requested
                 if evaluation_dataloader is not None and global_step % 100 == 0:
                     self.evaluate(evaluation_dataloader)
                     self.model.train()
             
-            # Log average loss for the epoch
             avg_loss = training_loss / global_step
             logger.info(f"Epoch {epoch+1}/{epochs} - Average loss: {avg_loss:.4f}")
             
-            # Evaluate after each epoch if dataloader is provided
             if evaluation_dataloader is not None:
                 self.evaluate(evaluation_dataloader)
                 self.model.train()
         
         logger.info(f"Training complete after {epochs} epochs, {global_step} steps")
         
-        # Save the trained model
         save_model(self.model, self.tokenizer, detector_path)
         logger.info(f"Trained model saved to {detector_path}")
         
@@ -262,11 +249,9 @@ class ModelTrainer:
         
         with torch.no_grad():
             for batch in tqdm(eval_dataloader, desc="Evaluating"):
-                # Get inputs
                 batch = tuple(t.to(self.device) for t in batch)
                 input_ids, attention_mask, labels = batch
                 
-                # Forward pass
                 outputs = self.model(
                     input_ids=input_ids,
                     attention_mask=attention_mask,
@@ -276,17 +261,14 @@ class ModelTrainer:
                 loss = outputs["loss"]
                 logits = outputs["logits"]
                 
-                # Track loss
                 total_loss += loss.item()
                 
-                # Convert logits to predictions
                 preds = torch.argmax(logits, dim=1).cpu().numpy()
                 labels = labels.cpu().numpy()
                 
                 all_preds.extend(preds)
                 all_labels.extend(labels)
         
-        # Calculate metrics
         from sklearn.metrics import precision_recall_fscore_support, accuracy_score
         
         precision, recall, f1, _ = precision_recall_fscore_support(
@@ -295,7 +277,6 @@ class ModelTrainer:
         
         accuracy = accuracy_score(all_labels, all_preds)
         
-        # Log results
         metrics = {
             "loss": total_loss / len(eval_dataloader),
             "accuracy": accuracy,
@@ -322,12 +303,10 @@ def train_bug_detection_model(train_df=None, test_df=None, force_retrain=False):
     
     model_save_path = os.path.join(config.MODEL_SAVE_PATH, "detector")
     
-    # Check if model already exists
     if os.path.exists(model_save_path) and not force_retrain:
         logger.info(f"Bug detection model already exists at {model_save_path}. Skipping training.")
         return model_save_path
     
-    # Load data if not provided
     if train_df is None or test_df is None:
         train_path = os.path.join(config.TRAIN_DATA_PATH, "train_data.csv")
         test_path = os.path.join(config.TEST_DATA_PATH, "test_data.csv")
@@ -340,7 +319,6 @@ def train_bug_detection_model(train_df=None, test_df=None, force_retrain=False):
             logger.error("Training data not found. Please run data_preparation.py first.")
             return None
     
-    # Initialize model and tokenizer
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
     
     tokenizer = AutoTokenizer.from_pretrained(config.MODEL_NAME)
@@ -349,23 +327,18 @@ def train_bug_detection_model(train_df=None, test_df=None, force_retrain=False):
         num_labels=2
     )
     
-    # Initialize trainer
     trainer = ModelTrainer(model, tokenizer)
     
-    # Prepare data loaders
     train_dataloader, test_dataloader = trainer.prepare_data_loaders(train_df, test_df)
     
-    # Train model
     trainer.train(
         train_dataloader, 
         epochs=config.EPOCHS,
         evaluation_dataloader=test_dataloader
     )
     
-    # Final evaluation
     metrics = trainer.evaluate(test_dataloader)
     
-    # Save model
     os.makedirs(model_save_path, exist_ok=True)
     trainer.save(model_save_path)
     
@@ -380,12 +353,10 @@ def train_bug_classifier_model(train_df=None, test_df=None, force_retrain=False)
     
     model_save_path = os.path.join(config.MODEL_SAVE_PATH, "classifier")
     
-    # Check if model already exists
     if os.path.exists(model_save_path) and not force_retrain:
         logger.info(f"Bug classifier model already exists at {model_save_path}. Skipping training.")
         return model_save_path
     
-    # Load data if not provided
     if train_df is None or test_df is None:
         train_path = os.path.join(config.TRAIN_DATA_PATH, "train_data.csv")
         test_path = os.path.join(config.TEST_DATA_PATH, "test_data.csv")
@@ -398,7 +369,6 @@ def train_bug_classifier_model(train_df=None, test_df=None, force_retrain=False)
             logger.error("Training data not found. Please run data_preparation.py first.")
             return None
     
-    # Initialize model and tokenizer
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
     
     tokenizer = AutoTokenizer.from_pretrained(config.MODEL_NAME)
@@ -407,27 +377,21 @@ def train_bug_classifier_model(train_df=None, test_df=None, force_retrain=False)
         num_labels=len(config.BUG_TYPES)
     )
     
-    # Initialize trainer
     trainer = ModelTrainer(model, tokenizer)
     
-    # Prepare data loaders for bug type classification
     train_dataloader, test_dataloader, label_encoder = trainer.prepare_bug_type_data_loaders(train_df, test_df)
     
-    # Train model
     trainer.train(
         train_dataloader, 
         epochs=config.EPOCHS,
         evaluation_dataloader=test_dataloader
     )
     
-    # Final evaluation
     metrics = trainer.evaluate(test_dataloader)
     
-    # Save model
     os.makedirs(model_save_path, exist_ok=True)
     trainer.save(model_save_path)
     
-    # Save label encoder
     import pickle
     with open(os.path.join(model_save_path, "label_encoder.pkl"), "wb") as f:
         pickle.dump(label_encoder, f)
@@ -438,17 +402,14 @@ def train_bug_classifier_model(train_df=None, test_df=None, force_retrain=False)
 
 
 if __name__ == "__main__":
-    # Load data
     train_path = os.path.join(config.TRAIN_DATA_PATH, "train_data.csv")
     test_path = os.path.join(config.TEST_DATA_PATH, "test_data.csv")
     
-    # Check if data exists, otherwise use sample data
     if not os.path.exists(train_path) or not os.path.exists(test_path):
         logger.info("Using sample data for training")
         from data_preparation import create_sample_data
         sample_df = create_sample_data()
         
-        # Split sample data
         from sklearn.model_selection import train_test_split
         train_df, test_df = train_test_split(sample_df, test_size=0.2, random_state=config.SEED)
     else:
@@ -456,6 +417,5 @@ if __name__ == "__main__":
         train_df = pd.read_csv(train_path)
         test_df = pd.read_csv(test_path)
     
-    # Train models
     detector_path = train_bug_detection_model(train_df, test_df, force_retrain=True)
     classifier_path = train_bug_classifier_model(train_df, test_df, force_retrain=True)
