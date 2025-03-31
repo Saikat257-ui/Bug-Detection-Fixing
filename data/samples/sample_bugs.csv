@@ -1,0 +1,82 @@
+buggy_code,fixed_code,bug_type,has_bug
+"def calculate_average(numbers):
+    total = 0
+    for num in numbers:
+        total += num
+    return total / len(numbers)
+    
+# Example usage
+data = [1, 2, 3, 4, 5]
+avg = calculate_average(data)
+print(f""The average is: {avg}"")
+
+# Bug: Division by zero if numbers is empty
+","def calculate_average(numbers):
+    if not numbers:
+        return 0
+    total = 0
+    for num in numbers:
+        total += num
+    return total / len(numbers)
+    
+# Example usage
+data = [1, 2, 3, 4, 5]
+avg = calculate_average(data)
+print(f""The average is: {avg}"")
+",logic_error,1
+"def find_max(arr):
+    if not arr:
+        return None
+    max_val = arr[0]
+    for i in range(1, len(arr)):
+        if arr[i] > max_val:
+            max_val = arr[i]
+    return max_val
+
+# No bug in this function
+","def find_max(arr):
+    if not arr:
+        return None
+    max_val = arr[0]
+    for i in range(1, len(arr)):
+        if arr[i] > max_val:
+            max_val = arr[i]
+    return max_val
+
+# No bug in this function
+",none,0
+"def merge_dicts(dict1, dict2)
+    result = dict1.copy()
+    result.update(dict2)
+    return result
+
+# Bug: Missing colon after function definition
+","def merge_dicts(dict1, dict2):
+    result = dict1.copy()
+    result.update(dict2)
+    return result
+",syntax_error,1
+"def search_list(items, target):
+    for i in range(0, len(items)-1):
+        if items[i] == target:
+            return i
+    return -1
+
+# Bug: Off-by-one error, should be range(0, len(items))
+","def search_list(items, target):
+    for i in range(0, len(items)):
+        if items[i] == target:
+            return i
+    return -1
+",off_by_one_error,1
+"def calculate_discounted_price(price, discount_rate):
+    discount = price * discount_rate
+    final_price = price - discount
+    return ""The final price is "" + final_price
+
+# Bug: Type error - string concatenation with number
+","def calculate_discounted_price(price, discount_rate):
+    discount = price * discount_rate
+    final_price = price - discount
+    return ""The final price is "" + str(final_price)
+",type_error,1

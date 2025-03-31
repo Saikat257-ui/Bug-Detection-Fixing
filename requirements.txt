@@ -1,0 +1,12 @@
+numpy==1.24.3  # Keep this version for compatibility with other dependencies
+# Do not upgrade to NumPy 2.x as it causes compatibility issues with other ML libraries
+pandas==2.0.1
+scikit-learn==1.2.2
+transformers==4.30.2
+datasets==2.13.1
+torch==2.0.1
+google-generativeai==0.3.1
+tqdm==4.65.0
+matplotlib==3.7.1
+notebook==6.5.4
+python-dotenv==1.0.0
