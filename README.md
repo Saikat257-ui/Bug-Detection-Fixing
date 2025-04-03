@@ -32,7 +32,7 @@ This project uses Machine Learning to automatically identify bugs in code and su
 
 ## Usage
 
-Run this main script to analyze all the code samples loaded in the 'samples' folder:
+Run this main script(preferably) to analyze all the code samples loaded in the 'samples' folder at a time:
 ```
 python main.py
 ```

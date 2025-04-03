@@ -17,7 +17,7 @@ TRAIN_TEST_SPLIT = 0.2
 SEED = 42
 
 # Data configuration
-PROGRAMMING_LANGUAGES = ["python", "javascript"]
+PROGRAMMING_LANGUAGES = ["python"]
 MAX_SAMPLES_PER_LANGUAGE = 10000
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 TRAIN_DATA_PATH = os.path.join(DATA_DIR, "train")
