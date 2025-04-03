@@ -49,3 +49,15 @@ python main.py --analyze-file "path to that code sample"
 - Bug classification by type
 - Fix recommendations using Gemini API
 - Performance metrics for model evaluation
+
+## Team Members
+
+1. Saikat Patra (Team Leader)
+   - Planned the entire project structure
+   - Developed the model from scratch
+
+2. Aishika Majumder
+   - Created the project report and presentation
+
+3. Pritam Chakraborty
+   - Supported by giving some relevant informations
