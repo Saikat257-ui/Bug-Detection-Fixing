@@ -62,5 +62,5 @@ python main.py --analyze-file "path to that code sample"
 3. Pritam Chakraborty
    - Supported by giving some relevant information
   
-4. Soumavo Acherjee
+4. Soumavo Acharjee
    - Just joined as a team member and took no significant responsibilities.
