@@ -52,14 +52,14 @@ python main.py --analyze-file "path to that code sample"
 
 ## Team Members
 
-1. Saikat Patra (Team Leader)
+1. Saikat Patra
    - Led the technical-development of the project, including designing, coding, training, and testing the machine learning and deep learning models. Took the lead in implementation, troubleshooting, and fine-tuning, ensuring the core engine of the Bug Detection and Fix Recommendation System functioned effectively and met the desired objectives.
 
-2. Aishika Majumder
+2. Aishika Majumdar
    - Played a key role in coordinating team efforts and ensuring smooth communication and collaboration throughout the project. Took full responsibility for creating a comprehensive project report, aligning all documentation with technical developments, and maintaining consistent progress tracking. Also helped in quality-checking and aligning research with report requirements.
 
 
-3. Pritam Chakraborty
+3. Pritam Chakrabortty
    - Contributed heavily to the foundational stage of the project by sourcing relevant datasets, researching similar work, and ensuring high-quality inputs for model training. Also assisted in filtering data, performing exploratory data analysis, and identifying useful resources that shaped the model development.
 
 4. Soumavo Acharjee
