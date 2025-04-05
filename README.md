@@ -15,7 +15,7 @@ This project uses Machine Learning to automatically identify bugs in code and su
   - `utils.py`: Helper functions
 - `main.py`: Entry point for the application
 - `config.py`: Configuration settings
-- `requirements.txt`: Required dependencies
+- `requirements.txt`: Required dependencies(compatible with python 3.11 64-bit)
 
 ## Setup
 
