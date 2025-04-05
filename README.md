@@ -57,7 +57,10 @@ python main.py --analyze-file "path to that code sample"
    - Developed the model from scratch
 
 2. Aishika Majumder
-   - Created the project report and presentation
+   - Created the entire project report by taking a little bit of cooperation from 'Saikat Patra'
 
 3. Pritam Chakraborty
-   - Supported by giving some relevant informations
+   - Supported by giving some relevant information
+  
+4. Soumavo Acherjee
+   - Just joined as a team member and took no significant responsibilities.
