@@ -2,3 +2,6 @@
 app.log
 debug.log
 output.txt
+venv/
+__pycache__/
+*.pyc
